@@ -1,0 +1,12 @@
+---
+# Пароль для пользователя root.
+root_password: "{{ undef(hint='You must specify root password') }}"
+
+# Имя основного пользователя для входа.
+user_name: "{{ undef(hint='You must specify user name') }}"
+
+# Пароль основного пользователя.
+user_password: "{{ undef(hint='You must specify user password') }}"
+
+# Путь (на локальной системе) до публичного ключа для авторизации по ключу.
+user_pub_key_path: "{{ undef(hint='You must specify path to user public key') }}"

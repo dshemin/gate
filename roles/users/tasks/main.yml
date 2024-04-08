@@ -1,0 +1,12 @@
+---
+- name: "Check {{ user_name }} user exists"
+  local_action:
+    module: "ansible.builtin.command"
+    cmd: "ssh -q -o BatchMode=yes -o ConnectTimeout=3 -i {{ ansible_ssh_private_key_file }} {{ user_name }}@{{ inventory_hostname }} 'echo OK'"
+  changed_when: false
+  failed_when: false
+  register: "check_user_exists"
+
+- name: "Create user {{ user_name }}"
+  ansible.builtin.include_tasks: "./setup_users.yml"
+  when: "check_user_exists.rc != 0"

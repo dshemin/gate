@@ -1,0 +1,19 @@
+- name: "Restart vpn"
+  ansible.builtin.systemd_service:
+    name: "ocserv"
+    state: "restarted"
+    daemon_reload: yes
+
+- name: "ufw"
+  block:
+  - name: "Restart ufw unit"
+    ansible.builtin.systemd_service:
+      name: "ufw"
+      state: "restarted"
+      daemon_reload: yes
+    listen: "Restart ufw"
+
+  - name: "Reload ufw"
+    community.general.ufw:
+      state: "reloaded"
+    listen: "Restart ufw"

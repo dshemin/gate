@@ -1,0 +1,77 @@
+---
+- name: "Create required directories"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 711
+  with_items:
+    - "{{ certs_account_dir }}"
+    - "{{ certs_domain_dir }}"
+
+- name: "Generate account private key {{ certs_account_private_key }}"
+  community.crypto.openssl_privatekey:
+    path: "{{ certs_account_private_key }}"
+
+- name: "Generate domain private key {{ certs_domain_private_key }}"
+  community.crypto.openssl_privatekey:
+    path: "{{ certs_domain_private_key }}"
+
+- name: "Create CSR for domain"
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ certs_domain_private_key }}"
+    common_name: "{{ certs_domain }}"
+    organization_name: "{{ certs_organization_name }}"
+    subject_alt_name:
+      - "DNS:{{ certs_domain }}"
+      - "DNS:*.{{ certs_domain }}"
+  register: "csr"
+
+- name: "Write domain's CSR"
+  ansible.builtin.copy:
+    dest: "{{ certs_domain_csr }}"
+    content: "{{ csr.csr }}"
+
+- name: "Create Let's Encrypt challenge"
+  community.crypto.acme_certificate:
+    account_key_src: "{{ certs_account_private_key }}"
+    account_email: "{{ certs_account_email }}"
+    acme_directory: "{{ certs_domain_directory }}"
+    acme_version: 2
+    terms_agreed: true
+    challenge: "dns-01"
+    csr: "{{ certs_domain_csr }}"
+    cert: "{{ certs_domain_crt }}"
+    remaining_days: 60
+  register: challenge
+
+- name: "Add challenge to DNS"
+  become: false
+  local_action:
+    module: "community.general.cloudflare_dns"
+    api_token: "{{ certs_dns_account_token }}"
+    zone: "{{ certs_dns_zone }}"
+    record: "{{ item.value['dns-01'].record }}"
+    value: "{{ item.value['dns-01'].resource_value }}"
+    state: "present"
+    type: "TXT"
+    proxied: false
+  loop: "{{ challenge.challenge_data | dict2items }}"
+  when: "challenge is changed"
+  run_once: true
+
+- name: "Validate challenge"
+  community.crypto.acme_certificate:
+    account_key_src: "{{ certs_account_private_key }}"
+    account_email: "{{ certs_account_email }}"
+    acme_directory: "{{ certs_domain_directory }}"
+    acme_version: 2
+    challenge: "dns-01"
+    csr: "{{ certs_domain_csr }}"
+    cert: "{{ certs_domain_crt }}"
+    fullchain_dest: "{{ certs_domain_fullchain_crt }}"
+    chain_dest: "{{ certs_domain_intermediate_crt }}"
+    remaining_days: 60
+    data: "{{ challenge }}"
+  when: "challenge is changed"

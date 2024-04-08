@@ -1,0 +1,71 @@
+---
+- name: "Install OpenConnect server"
+  ansible.builtin.include_tasks: "install_ocserv.yml"
+
+- name: "Enable VPN port"
+  community.general.ufw:
+    rule: "allow"
+    port: "{{ item }}"
+    proto: "tcp"
+  with_items:
+    - "{{ vpn_port }}"
+    - 22
+  notify: "Restart ufw"
+
+- name: "Enable firewall"
+  community.general.ufw:
+    state: "enabled"
+
+- name: "Configure VPN"
+  ansible.builtin.template:
+    src: "conf.j2"
+    dest: "/etc/ocserv/ocserv.conf"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  notify: "Restart vpn"
+
+- name: "Set sysctl options"
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    sysctl_set: true
+    state: "present"
+    reload: true
+  with_items:
+    - name: "net.ipv4.ip_forward"
+      value: "1"
+    - name: "net.core.default_qdisc"
+      value: "fq"
+    - name: "net.ipv4.tcp_congestion_control"
+      value: "bbr"
+
+- name: "Configure IP masquerading"
+  ansible.builtin.blockinfile:
+    path: "/etc/ufw/before.rules"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK 'IP masquerading'"
+    block: |
+      # NAT table rules
+      *nat
+      :POSTROUTING ACCEPT [0:0]
+      -A POSTROUTING -s {{ vpn_network }} -o {{ ansible_default_ipv4.interface }} -j MASQUERADE
+      COMMIT
+    insertafter: "^COMMIT"
+    prepend_newline: true
+    append_newline: true
+    state: "present"
+  notify: "Restart ufw"
+
+- name: "Allow forwarding"
+  ansible.builtin.blockinfile:
+    path: "/etc/ufw/before.rules"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK 'allow forwarding'"
+    block: |
+      # allow forwarding for trusted network
+      -A ufw-before-forward -s {{ vpn_network }} -j ACCEPT
+      -A ufw-before-forward -d {{ vpn_network }} -j ACCEPT
+    insertafter: "^-A ufw-before-forward -p icmp --icmp-type echo-request -j ACCEPT"
+    prepend_newline: true
+    append_newline: true
+    state: "present"
+  notify: "Restart ufw"

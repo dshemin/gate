@@ -1,0 +1,15 @@
+---
+# Порт на котором будет работать VPN сервер.
+vpn_port: 443
+
+# Сеть которая будет использоваться для генерации IP адресов.
+vpn_network: "10.10.10.0/24"
+
+# Домен для VPN.
+vpn_domain: "{{ undef(hint='You must specify VPN domain') }}"
+
+# Путь до сертификата.
+vpn_server_cert: "{{ undef(hint='You must specify path to server certificate') }}"
+
+# Путь до приватного ключа.
+vpn_server_private_key: "{{ undef(hint='You must specify path to server private key') }}"

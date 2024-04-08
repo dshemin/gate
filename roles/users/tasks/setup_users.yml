@@ -1,0 +1,37 @@
+---
+- name: "Set root password"
+  ansible.builtin.user:
+    name: "root"
+    password: "{{ root_password | string | password_hash('sha512') }}"
+    update_password: "always"
+
+- name: "Create user {{ user_name }}"
+  ansible.builtin.user:
+    name: "{{ user_name }}"
+    shell: "/bin/bash"
+    password: "{{ user_password | string | password_hash('sha512') }}"
+    group: "sudo"
+
+- name: "Copy authorized keys for {{ user_name }}"
+  ansible.builtin.authorized_key:
+    user: "{{ user_name }}"
+    state: "present"
+    key: "{{ lookup('file', user_pub_key_path) }}"
+
+- name: "Remove 50-cloud-init.conf"
+  ansible.builtin.file:
+    path: "/etc/ssh/sshd_config.d/50-cloud-init.conf"
+    state: "absent"
+
+- name: "Configure sshd"
+  ansible.builtin.lineinfile:
+    path: "/etc/ssh/sshd_config"
+    regex: "^(#)?{{ item.key }}"
+    line: "{{ item.key}} {{ item.value }}"
+    state: "present"
+  loop:
+    - { key: "PermitRootLogin", value: "no" }
+    - { key: "PasswordAuthentication", value: "no" }
+    - { key: "X11Forwarding", value: "no" }
+  notify:
+    - "Restart sshd"

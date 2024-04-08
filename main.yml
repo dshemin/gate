@@ -1,0 +1,41 @@
+---
+- name: "Setup users"
+  hosts: "gate"
+  remote_user: "root"
+  gather_facts: false
+  vars_files:
+    - "vars.yml"
+
+  roles:
+    - role: "users"
+      root_password: "{{ root.password }}"
+      user_name: "{{ user.name }}"
+      user_password: "{{ user.password }}"
+      user_pub_key_path: "{{ user.pub_key_path }}"
+
+- name: "Setup"
+  hosts: "gate"
+  remote_user: "dshemin"
+  become_user: "root"
+  become: true
+  vars_files:
+    - "vars.yml"
+  vars:
+    ansible_sudo_pass: "{{ user.password }}"
+    gate_domain: "{{ gate.sub_domain }}.{{ cloudflare.zone }}"
+    certs_dir: "/etc/letsencrypt"
+    server_cert: "{{ (certs_dir, 'domain/fullchain_domain.crt') | path_join }}"
+    server_private_key: "{{ (certs_dir, 'domain/domain.key') | path_join }}"
+
+  roles:
+    - role: "certs"
+      certs_domain: "{{ gate_domain }}"
+      certs_organization_name: "{{ gate_domain }}"
+      certs_account_email: "{{ certs.email }}"
+      certs_dns_zone: "{{ cloudflare.zone }}"
+      certs_dns_account_token: "{{ cloudflare.token }}"
+
+    - role: "vpn"
+      vpn_domain: "{{ vpn.sub_domain }}.{{ cloudflare.zone }}"
+      vpn_server_cert: "{{ server_cert }}"
+      vpn_server_private_key: "{{ server_private_key }}"

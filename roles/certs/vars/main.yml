@@ -1,0 +1,35 @@
+---
+# Путь до папки где лежат все файлы сгенерированные/полученные для/от Let's Encrypt.
+certs_dir: "/etc/letsencrypt"
+
+# Путь до папки где лежит всё что касается аккаунта.
+certs_account_dir: "{{ (certs_dir, 'account') | path_join }}"
+# Путь до файла с ключом аккаунта.
+certs_account_private_key: "{{ (certs_account_dir, 'account.key') | path_join }}"
+# E-Mail адрес аккаунта.
+certs_account_email: "{{ undef(hint='You must specify account email') }}"
+
+# Путь до папки с сертификатами домена.
+certs_domain_dir: "{{ (certs_dir, 'domain') | path_join }}"
+# Путь до файла с приватным ключом домена.
+certs_domain_private_key: "{{ (certs_domain_dir, 'domain.key') | path_join }}"
+# Путь до файлы с шифрованным запросом на выпуск сертификата.
+certs_domain_csr: "{{ (certs_domain_dir, 'domain.csr') | path_join }}"
+# Путь до файла с сертификатом.
+certs_domain_crt: "{{ (certs_domain_dir, 'domain.crt') | path_join }}"
+# Путь до файла со всей цепочкой сертификатов.
+certs_domain_fullchain_crt: "{{ (certs_domain_dir, 'fullchain_domain.crt') | path_join }}"
+# Путь до файла с промежуточным сертификатом.
+certs_domain_intermediate_crt: "{{ (certs_domain_dir, 'intermediate_domain.crt') | path_join }}"
+# Директория Let's Encrypt в которой лежит сертификат.
+certs_domain_directory: "https://acme-v02.api.letsencrypt.org/directory"
+
+# Домен для которого выписан сертификат.
+certs_domain: "{{ undef(hint='You must specify domain') }}"
+# Название организации.
+certs_organization_name: "{{ undef(hint='You must specify organization_name') }}"
+
+# Зона DNS в котрой лежит домен для которого выписан сертификат.
+certs_dns_zone: "{{ undef(hint='You must specify DNS zone') }}"
+# API токен с для манипулирования DNS зоной.
+certs_dns_account_token: "{{ undef(hint='You must specify DNS API account token') }}"
