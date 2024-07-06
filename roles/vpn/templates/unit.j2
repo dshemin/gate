@@ -9,6 +9,7 @@ PIDFile=/run/ocserv.pid
 Type=simple
 ExecStart=/usr/local/sbin/ocserv --foreground --pid-file /run/ocserv.pid --config /etc/ocserv/ocserv.conf
 ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
